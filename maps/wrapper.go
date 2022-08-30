@@ -39,13 +39,13 @@ func (o *MapWrapper) IsModified() bool {
 	return o.modified
 }
 
-func (o *MapWrapper) Map() *map[string]interface{} {
+func (o *MapWrapper) Map() map[string]interface{} {
 	// Is Map Empty?
 	if len(o.inner) == 0 {
 		return nil
 	}
 
-	return &o.inner
+	return o.inner
 }
 
 func (o *MapWrapper) Has(path string) bool {
