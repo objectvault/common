@@ -10,10 +10,6 @@ package maps
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import (
-	"errors"
-)
-
 type MapWrapper struct {
 	inner    map[string]interface{}
 	modified bool
@@ -60,79 +56,36 @@ func (o *MapWrapper) GetDefault(path string, d interface{}) (interface{}, error)
 	return GetDefault(o.inner, path, d)
 }
 
-func (o *MapWrapper) Set(path string, v interface{}, force bool) (interface{}, error) {
-	// Convert Path to a string array
-	p, e := pathToPathArray(path)
-	if e != nil { // FAILED: Converting path to array
-		return nil, e
+func (o *MapWrapper) Set(path string, v interface{}, force bool) error {
+	var m map[string]interface{}
+	var e error
+
+	// Is VALUE to be set?
+	if v == nil { // NO: Clear it
+		m, e = Clear(o.inner, path)
+	} else { // YES
+		m, e = Set(o.inner, path, v, force)
 	}
 
-	// Empty Path?
-	if len(p) == 0 { // YES: Abort
-		return nil, errors.New("Missing path")
+	// Error Occurred?
+	if e == nil { // NO
+		o.inner = m
+		o.modified = true
 	}
 
-	// Map created?
-	if o.inner == nil { // NO: Create Container for Map
-		o.inner = make(map[string]interface{})
-	}
-
-	// Create Parent?
-	parent, e := createParent(o.inner, p, force)
-	if e != nil { // FAILED
-		return nil, e
-	}
-
-	// Child Name
-	key := p[len(p)-1]
-
-	// Get Current Value
-	current, exists := parent[key]
-	parent[key] = v
-	o.modified = true
-
-	// Do we have a current value?
-	if exists { // YES: Return it
-		return current, nil
-	}
-	// ELSE: No Current Value
-	return nil, nil
+	return e
 }
 
-func (o *MapWrapper) Clear(path interface{}) (interface{}, error) {
-	// Map created?
-	if o.inner == nil { // NO
-		return nil, nil
-	}
+func (o *MapWrapper) Clear(path interface{}) error {
+	m, e := Clear(o.inner, path)
 
-	// Convert Path to a string array
-	p, e := pathToPathArray(path)
-	if e != nil { // FAILED: Converting path to array
-		return nil, e
-	}
-
-	// Empty Path?
-	if len(p) == 0 { // YES: Clear Whole Map
-		c := o.inner
-		o.inner = nil
+	// Error Occurred?
+	if e == nil { // NO
+		o.inner = m
 		o.modified = true
-		return c, nil
 	}
 
-	// Parent Exists?
-	parent, left := getParent(o.inner, p)
-	if len(left) == 0 { // YES: Test if Child Exists
-		// Child Name
-		key := p[len(p)-1]
-		value, exists := parent[key]
-		if exists {
-			delete(parent, key)
-			o.modified = true
-			return value, nil
-		}
-	}
-	// ELSE: Parent or Key Does not exist
-	return nil, nil
+	return e
 }
 
 func (o *MapWrapper) ClearModified(path interface{}) bool {

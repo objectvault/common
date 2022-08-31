@@ -100,16 +100,16 @@ func GetDefault(m map[string]interface{}, path string, d interface{}) (interface
 	return d, nil
 }
 
-func Set(m map[string]interface{}, path string, v interface{}, force bool) error {
+func Set(m map[string]interface{}, path string, v interface{}, force bool) (map[string]interface{}, error) {
 	// Convert Path to a string array
 	p, e := pathToPathArray(path)
 	if e != nil { // FAILED: Converting path to array
-		return e
+		return m, e
 	}
 
 	// Empty Path?
 	if len(p) == 0 { // YES: Abort
-		return errors.New("Missing path")
+		return m, errors.New("Missing path")
 	}
 
 	// Map created?
@@ -120,7 +120,10 @@ func Set(m map[string]interface{}, path string, v interface{}, force bool) error
 	// Create Parent?
 	parent, e := createParent(m, p, force)
 	if e != nil { // FAILED
-		return e
+		if len(m) == 0 {
+			return nil, e
+		}
+		return m, e
 	}
 
 	// Child Name
@@ -128,24 +131,24 @@ func Set(m map[string]interface{}, path string, v interface{}, force bool) error
 
 	// Get Current Value
 	parent[key] = v
-	return nil
+	return m, nil
 }
 
-func Clear(m map[string]interface{}, path interface{}) error {
+func Clear(m map[string]interface{}, path interface{}) (map[string]interface{}, error) {
 	// Map created?
 	if m == nil { // NO
-		return nil
+		return nil, nil
 	}
 
 	// Convert Path to a string array
 	p, e := pathToPathArray(path)
 	if e != nil { // FAILED: Converting path to array
-		return e
+		return m, e
 	}
 
 	// Empty Path?
 	if len(p) == 0 { // YES: Clear Whole Map
-		return nil
+		return m, nil
 	}
 
 	// Parent Exists?
@@ -159,7 +162,13 @@ func Clear(m map[string]interface{}, path interface{}) error {
 		}
 	}
 	// ELSE: Parent or Key Does not exist
-	return nil
+
+	// Resultant MAP is EMPTY?
+	if len(m) == 0 { // YES
+		return nil, nil
+	}
+
+	return m, nil
 }
 
 func ToJSONString(m map[string]interface{}) (string, error) {
